@@ -1,0 +1,10 @@
+{
+  "name": "SRT SUPREME ADMIN",
+  "short_name": "SRT Admin",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#000000",
+  "description": "SRT Supreme Admin Control Panel",
+  "orientation": "portrait",
+  "gcm_sender_id": "103953800507" 
+}
