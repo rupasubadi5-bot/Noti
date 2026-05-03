@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SRT SUPREME CONTROL PRO V2</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        #header-wrapper, .sidebar-wrapper, .footer-wrapper, .post-footer, #comments, .post-share-buttons, .blog-pager, .header, .date-header, .tabs-outer, .main-inner { display: none !important; }
+        :root { --neon-blue: #00f0ff; --pure-black: #000000; --card-bg: #0a0a0a; --neon-pink: #ff00f0; --neon-green: #12fd01; }
+        body { margin: 0; padding: 0; background: var(--pure-black) !important; font-family: 'Segoe UI', sans-serif; overflow: hidden; color: white; }
+        @media screen and (min-width: 1024px) {
+            body::before { content: "ACCESS DENIED: MOBILE ONLY SYSTEM"; position: fixed; inset: 0; background: black; color: red; z-index: 99999999; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: bold; }
+            .supreme-overlay { display: none !important; }
+        }
+        #login-screen { position: fixed; inset: 0; background: #000; z-index: 10000000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .login-box { width: 85%; max-width: 320px; padding: 25px; border: 2px solid var(--neon-blue); border-radius: 20px; box-shadow: 0 0 15px var(--neon-blue); }
+        .login-input { width: 100%; background: #111; border: 1px solid #333; color: #fff; padding: 12px; margin: 10px 0; border-radius: 8px; box-sizing: border-box; outline: none; }
+        .supreme-overlay { position: fixed; inset: 0; background: var(--pure-black); z-index: 999999; display: none; flex-direction: column; border: 4px solid var(--neon-blue); box-sizing: border-box; }
+        .header-nav { padding: 15px; background: #000; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar { position: fixed; top: 0; left: -100%; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000001; transition: 0.4s; padding: 25px; box-sizing: border-box; }
+        .sidebar.active { left: 0; }
+        .admin-card { background: var(--card-bg); border: 1px solid #222; border-left: 4px solid var(--neon-blue); border-radius: 12px; padding: 15px; margin: 15px 10px; }
+        .btn { padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 11px; }
+        .btn-approve { background: var(--neon-green); color: #000; flex: 1; margin-right: 5px; }
+        .btn-reject { background: #333; color: #fff; flex: 1; }
+        .content-area { flex: 1; overflow-y: auto; }
+        .menu-icon { font-size: 28px; color: var(--neon-blue); cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h2 style="color: var(--neon-blue); text-align: center; margin-top: 0;">ADMIN ACCESS</h2>
+        <input type="text" id="user" class="login-input" placeholder="USER ID">
+        <input type="password" id="pass" class="login-input" placeholder="PASSWORD">
+        <input type="password" id="vcode" class="login-input" placeholder="VERIFICATION PIN">
+        <button onclick="checkLogin()" style="width: 100%; background: var(--neon-blue); border: none; padding: 14px; font-weight: bold; margin-top: 15px; border-radius: 8px;">UNSEAL SYSTEM</button>
+    </div>
+</div>
+
+<div class="supreme-overlay" id="main-dash">
+    <div class="header-nav">
+        <div class="menu-icon" onclick="toggleMenu()">☰</div>
+        <div style="text-align: center;">
+            <div style="color: var(--neon-blue); font-weight: 900;">SRT SUPREME</div>
+            <div style="font-size: 9px; color: var(--neon-pink);">BACKGROUND MONITOR ACTIVE</div>
+        </div>
+        <div id="connection-status" style="width: 10px; height: 10px; background: var(--neon-green); border-radius: 50%;"></div>
+    </div>
+
+    <div class="content-area">
+        <h4 style="text-align: center; color: #444; letter-spacing: 2px;">LIVE APPROVALS</h4>
+        <div id="live-data"></div>
+    </div>
+</div>
+
+<audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, updateDoc, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAjJpK-3eNIXFM7V7dWLJhWua5T3fF3_2E",
+        authDomain: "user-store-srt.firebaseapp.com",
+        projectId: "user-store-srt",
+        storageBucket: "user-store-srt.firebasestorage.app",
+        messagingSenderId: "932714544224",
+        appId: "1:932714544224:web:7ecaecb707b59b3b7d1705"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    let lastRequestCount = -1;
+    const sound = document.getElementById('alert-sound');
+
+    // Service Worker Registration for Background Tasks
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('firebase-messaging-sw.js')
+        .then(() => console.log("Background Service Worker Active"));
+    }
+
+    window.checkLogin = () => {
+        if(document.getElementById('user').value === "SAMRAT" && document.getElementById('pass').value === "999999" && document.getElementById('vcode').value === "000000") {
+            
+            // Request Notification Permission
+            Notification.requestPermission().then(perm => {
+                if(perm === 'granted') console.log("Notifications Enabled");
+            });
+
+            // Unlock Audio for Mobile
+            sound.play().catch(() => {});
+
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-dash').style.display = 'flex';
+            startListener();
+        } else { alert("ACCESS DENIED"); }
+    }
+
+    function startListener() {
+        onSnapshot(collection(db, "users"), (snapshot) => {
+            const list = document.getElementById("live-data");
+            list.innerHTML = "";
+            let pendingRequests = [];
+
+            snapshot.forEach((uDoc) => {
+                const u = uDoc.data();
+                if (u.requestStatus === "Approval Pending") {
+                    pendingRequests.push({id: uDoc.id, ...u});
+
+                    list.innerHTML += `
+                        <div class="admin-card">
+                            <div style="font-size: 14px;"><b>NAME:</b> ${u.userName || 'N/A'}</div>
+                            <div style="color: var(--neon-pink); font-size: 13px;"><b>ITEM:</b> ${u.item || 'N/A'}</div>
+                            <div style="color: var(--neon-green); font-size: 13px;"><b>WA:</b> ${u.whatsapp || 'N/A'}</div>
+                            <div style="display: flex; gap: 10px; margin-top:10px;">
+                                <button class="btn-approve" onclick="manage('${uDoc.id}', 'Approved')">APPROVE</button>
+                                <button class="btn-reject" onclick="manage('${uDoc.id}', 'Rejected')">REJECT</button>
+                            </div>
+                        </div>`;
+                }
+            });
+
+            // Background Trigger Logic
+            if (lastRequestCount !== -1 && pendingRequests.length > lastRequestCount) {
+                const newReq = pendingRequests[0];
+                triggerGlobalAlert(newReq.userName, newReq.item);
+            }
+            lastRequestCount = pendingRequests.length;
+            
+            if (pendingRequests.length === 0) list.innerHTML = "<p style='text-align:center;color:#444;margin-top:50px;'>WAITING FOR REQUESTS...</p>";
+        });
+    }
+
+    function triggerGlobalAlert(name, item) {
+        // Sound & Vibration
+        sound.currentTime = 0;
+        sound.play();
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+
+        // Visual Notification (Works in background if tab is open)
+        if (Notification.permission === "granted") {
+            new Notification("🚨 NEW SRT REQUEST", {
+                body: `${name} is waiting for ${item}`,
+                icon: "https://cdn-icons-png.flaticon.com/512/595/595067.png",
+                tag: "srt-alert"
+            });
+        }
+    }
+
+    window.manage = async (docId, status) => {
+        try {
+            await updateDoc(doc(db, "users", docId), {
+                requestStatus: status,
+                processedAt: new Date().toLocaleString()
+            });
+            alert("Signal Sent: " + status);
+        } catch(e) { alert("Error: " + e.message); }
+    };
+
+    // Keep system alive logic
+    (function blockNonMobile() {
+        if (!/Android|iPhone|iPad/i.test(navigator.userAgent)) {
+            document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:40vh;'>MOBILE ONLY ACCESS</h1>";
+        }
+    })();
+</script>
+</body>
+</html>
